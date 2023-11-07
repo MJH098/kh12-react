@@ -10,7 +10,7 @@ const Pocketmon = (props)=>{
     const loadPocketmon = ()=>{
         
             axios({
-                url:"http://localhost:8080/pocketmon/",
+                url:`${process.env.REACT_APP_REST_API_URL}/pocketmon/`,
                 method:"get"
             })
             .then(response=>{
@@ -32,7 +32,7 @@ const deletePocketmon = (pocketmon) => {
 
     //axios({옵션}).then(성공시 실행할 함수).catch(실패시 실행할 함수);
     axios({
-        url:`http://localhost:8080/pocketmon/${pocketmon.no}`,
+        url:`${process.env.REACT_APP_REST_API_URL}/pocketmon/${pocketmon.no}`,
         method:"delete"
     })
     .then(response=>{
@@ -49,6 +49,8 @@ const openModal = ()=>{
 const closeModal = ()=>{
     const modal = Modal.getInstance(bsModal.current);
     modal.hide();
+
+    clearPocketmon();
 };
 
 //등록과 관련된 state
@@ -58,6 +60,54 @@ const changePocketmon = (e)=>{
         ...pocketmon,
         [e.target.name] : e.target.value
     });
+};
+
+const clearPocketmon = ()=>{
+    setPocketmon({name:"", type:""});
+};
+
+//axios로 서버에 등록 요청을 보낸 뒤 등록이 성공하면 목록을 갱신하도록 처리
+const savePocketmon = ()=>{
+    //입력값 검사 후 차단 코드 추가
+
+    axios({
+        url:`${process.env.REACT_APP_REST_API_URL}/pocketmon/`,
+        method:"post",
+        data:pocketmon
+    })
+    .then(response=>{//성공했다면
+        loadPocketmon();//목록을 갱신하고
+        closeModal();//모달을 닫아라
+    })
+    .catch(err=>{});
+};
+
+//포켓몬스터 수정 창 열기
+//- target은 수정 버튼을 누른 행의 포켓몬스터 정보
+//- target의 정보를 poocketmon으로 카피 후 모달 열기
+const editPocketmon = (target)=>{
+    setPocketmon({...target});
+    openModal();
+};
+
+//포켓몬스터 수정 처리
+const updatePocketmon = ()=>{
+    //검사 후 차단 처리
+    
+    const {no, name, type} = pocketmon;
+    axios({
+        url:`${process.env.REACT_APP_REST_API_URL}/pocketmon/${no}`,
+        method:"put",
+        data:{
+            name:name,
+            type:type
+        }
+    })
+    .then(response=>{
+        loadPocketmon();
+        closeModal();
+    })
+    .catch(err=>{});
 };
 
     return(
@@ -98,7 +148,10 @@ const changePocketmon = (e)=>{
                                     <td>{pocketmon.name}</td>
                                     <td>{pocketmon.type}</td>
                                     <td>
-                                        <button type="button" className="btn btn-light btn-sm"><FaEdit/></button>
+                                        <button type="button" className="btn btn-light btn-sm" 
+                                                                onClick={e=>editPocketmon(pocketmon)}>
+                                            <FaEdit/>
+                                        </button>
                                         <button type="submit" class="btn btn-outline-danger btn-sm"  
                                                                 onClick={e=>deletePocketmon(pocketmon)}>
                                             <FaTrash/>
@@ -117,8 +170,10 @@ const changePocketmon = (e)=>{
                     <div className="modal-dialog" role="document">
                         <div className="modal-content">
                         <div className="modal-header">
-                            <h5 className="modal-title">제목</h5>
-                            <button type="button" className="close" data-dismiss="modal" aria-label="Close">
+                            <h5 className="modal-title">
+                                {pocketmon.no === undefined ? '신규 몬스터 등록' : `${pocketmon.no}번 몬스터 수정`}
+                            </h5>
+                            <button type="button" className="border-0 bg-transparent text-white" onClick={closeModal}>
                             <span aria-hidden="true">&times;</span>
                             </button>
                         </div>
@@ -126,7 +181,7 @@ const changePocketmon = (e)=>{
                             <div className="row">
                                 <div className="col">
                                     <div className="form-label">이름</div>
-                                    <input type="text" name="name" className="form-control"
+                                    <input type="text" name="name" className="form-control" autoComplete="off"
                                         value={pocketmon.name} onChange={changePocketmon}/>
                                 </div>
                             </div>
@@ -134,7 +189,7 @@ const changePocketmon = (e)=>{
                             <div className="row mt-4">
                                 <div className="col">
                                     <label className="form-label">속성</label>
-                                    <input type="text" name="type" className="form-control" 
+                                    <input type="text" name="type" className="form-control" autoComplete="off"
                                         value={pocketmon.type} onChange={changePocketmon}/>
                                 </div>
                             </div>
@@ -142,7 +197,11 @@ const changePocketmon = (e)=>{
                         
                     </div>
                     <div className="modal-footer">
-                        <button className="btn btn-success">저장</button>
+                        {pocketmon.no === undefined ?
+                        <button className="btn btn-success" onClick={savePocketmon}>저장</button>
+                        :
+                        <button className="btn btn-success" onClick={updatePocketmon}>수정</button>
+                        }
                         <button className="btn btn-secondary" onClick={closeModal}>닫기</button>
                     </div>
                     </div>
